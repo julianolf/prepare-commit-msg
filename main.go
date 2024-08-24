@@ -4,7 +4,15 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
+
+	"github.com/julianolf/prepare-commit-msg/ai/anthropic"
 )
+
+type AI interface {
+	CommitMessage(string) (string, error)
+}
 
 var ai string
 
@@ -17,7 +25,43 @@ func init() {
 	}
 }
 
+func gitDiff() (string, error) {
+	var out strings.Builder
+
+	cmd := exec.Command("git", "diff", "--staged")
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return "", err
+	}
+
+	return out.String(), nil
+}
+
 func main() {
 	flag.Parse()
-	fmt.Println("Hello, world!")
+
+	var cli AI
+	switch ai {
+	default:
+		cli = anthropic.New()
+	}
+
+	diff, err := gitDiff()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if strings.TrimSpace(diff) == "" {
+		fmt.Println("Nothing to commit")
+		os.Exit(0)
+	}
+
+	msg, err := cli.CommitMessage(diff)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
+	}
+
+	fmt.Println(msg)
 }
