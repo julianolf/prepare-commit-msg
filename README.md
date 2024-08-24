@@ -6,10 +6,6 @@ This tool automatically generates commit messages based on the staged changes in
 
 It is designed to be used as a Git hook but can also function as a command-line program. When used from the command line, it can either output the generated message to standard output or save it to a file if an argument is provided.
 
-For details on how to configure it as a Git hook, refer to the documentation:
-- Git hooks: [prepare-commit-msg](https://git-scm.com/docs/githooks#_prepare_commit_msg)
-- Git config: [core.hooksPath](https://git-scm.com/docs/git-config#Documentation/git-config.txt-corehooksPath)
-
 ## AI Support
 
 Currently, this tool only supports the [Anthropic API](https://docs.anthropic.com), but more providers will be added in the future.
@@ -35,3 +31,7 @@ export ANTHROPIC_API_KEY='xyzabc123'
 ```
 
 You can add this to your `.rc` file so it is automatically exported when you start a new shell.
+
+For details on how to configure it as a Git hook, refer to the documentation:
+- Git hooks: [prepare-commit-msg](https://git-scm.com/docs/githooks#_prepare_commit_msg)
+- Git config: [core.hooksPath](https://git-scm.com/docs/git-config#Documentation/git-config.txt-corehooksPath)
