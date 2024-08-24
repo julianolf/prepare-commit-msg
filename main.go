@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -63,5 +64,21 @@ func main() {
 		os.Exit(2)
 	}
 
-	fmt.Println(msg)
+	var out io.Writer
+	args := os.Args[1:]
+	switch len(args) {
+	case 1, 3:
+		filename := args[len(args)-1]
+		file, err := os.Create(filename)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(3)
+		}
+		defer file.Close()
+		out = file
+	default:
+		out = os.Stdout
+	}
+
+	fmt.Fprintln(out, msg)
 }
