@@ -65,10 +65,10 @@ func main() {
 	}
 
 	var out io.Writer
-	args := os.Args[1:]
+	args := flag.Args()
 	switch len(args) {
-	case 1, 3:
-		filename := args[len(args)-1]
+	case 1:
+		filename := args[0]
 		file, err := os.Create(filename)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
