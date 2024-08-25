@@ -63,6 +63,11 @@ func gitDiff() (string, error) {
 func main() {
 	args := parseArgs()
 
+	switch args.Source {
+	case "message", "merge", "squash", "commit":
+		os.Exit(0)
+	}
+
 	diff, err := gitDiff()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
