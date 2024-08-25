@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -15,14 +14,36 @@ type AI interface {
 	CommitMessage(string) (string, error)
 }
 
+type Args struct {
+	Filename string
+	Source   string
+	SHA      string
+}
+
 var ai string
 
 func init() {
 	flag.StringVar(&ai, "ai", "anthropic", "AI to use")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stdout, "Usage: %s [options...] [output file] \n", os.Args[0])
+		fmt.Fprintf(os.Stdout, "Usage: %s [options...] [output file] [commit source] [commit hash] \n", os.Args[0])
 		flag.PrintDefaults()
+	}
+}
+
+func parseArgs() *Args {
+	flag.Parse()
+	args := flag.Args()
+
+	switch len(args) {
+	case 1:
+		return &Args{Filename: args[0]}
+	case 2:
+		return &Args{Filename: args[0], Source: args[1]}
+	case 3:
+		return &Args{Filename: args[0], Source: args[1], SHA: args[2]}
+	default:
+		return &Args{}
 	}
 }
 
@@ -40,7 +61,7 @@ func gitDiff() (string, error) {
 }
 
 func main() {
-	flag.Parse()
+	args := parseArgs()
 
 	var cli AI
 	switch ai {
@@ -64,20 +85,14 @@ func main() {
 		os.Exit(2)
 	}
 
-	var out io.Writer
-	args := flag.Args()
-	switch len(args) {
-	case 1:
-		filename := args[0]
-		file, err := os.Create(filename)
+	out := os.Stdout
+	if args.Filename != "" {
+		out, err = os.Create(args.Filename)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(3)
 		}
-		defer file.Close()
-		out = file
-	default:
-		out = os.Stdout
+		defer out.Close()
 	}
 
 	fmt.Fprintln(out, msg)
