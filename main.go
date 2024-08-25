@@ -63,12 +63,6 @@ func gitDiff() (string, error) {
 func main() {
 	args := parseArgs()
 
-	var cli AI
-	switch ai {
-	default:
-		cli = anthropic.New()
-	}
-
 	diff, err := gitDiff()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -77,6 +71,12 @@ func main() {
 	if strings.TrimSpace(diff) == "" {
 		fmt.Println("Nothing to commit")
 		os.Exit(0)
+	}
+
+	var cli AI
+	switch ai {
+	default:
+		cli = anthropic.New()
 	}
 
 	msg, err := cli.CommitMessage(diff)
