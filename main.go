@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/julianolf/prepare-commit-msg/ai/anthropic"
@@ -20,10 +22,16 @@ type Args struct {
 	SHA      string
 }
 
-var ai string
+const prefix = "~/"
+
+var (
+	ai  string
+	cfg string
+)
 
 func init() {
 	flag.StringVar(&ai, "ai", "anthropic", "AI to use")
+	flag.StringVar(&cfg, "config", prefix+"prepare-commit-msg.json", "Configuration file")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stdout, "Usage: %s [options...] [output file] [commit source] [commit hash] \n", os.Args[0])
@@ -45,6 +53,36 @@ func parseArgs() *Args {
 	default:
 		return &Args{}
 	}
+}
+
+func readConfig() (map[string]interface{}, error) {
+	if strings.HasPrefix(cfg, prefix) {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil, err
+		}
+		cfg = filepath.Join(home, strings.TrimPrefix(cfg, prefix))
+	}
+
+	info, err := os.Stat(cfg)
+	if err != nil {
+		return nil, nil
+	}
+	if !info.Mode().IsRegular() {
+		return nil, nil
+	}
+
+	data, err := os.ReadFile(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	conf := make(map[string]interface{})
+	err = json.Unmarshal(data, &conf)
+	if err != nil {
+		return nil, err
+	}
+	return conf, nil
 }
 
 func gitDiff() (string, error) {
@@ -78,6 +116,12 @@ func main() {
 		os.Exit(0)
 	}
 
+	_, err = readConfig()
+	if err != nil {
+		fmt.Fprint(os.Stderr, err)
+		os.Exit(2)
+	}
+
 	var cli AI
 	switch ai {
 	default:
@@ -87,7 +131,7 @@ func main() {
 	msg, err := cli.CommitMessage(diff)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
+		os.Exit(3)
 	}
 
 	out := os.Stdout
@@ -95,7 +139,7 @@ func main() {
 		out, err = os.Create(args.Filename)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			os.Exit(3)
+			os.Exit(4)
 		}
 		defer out.Close()
 	}
