@@ -45,11 +45,17 @@ type Response struct {
 type Client struct {
 	http.Client
 	APIKey string
+	System string
 }
 
-func New() *Client {
-	key := os.Getenv("ANTHROPIC_API_KEY")
-	return &Client{APIKey: key}
+func New(key, system string) *Client {
+	if key == "" {
+		key = os.Getenv("ANTHROPIC_API_KEY")
+	}
+	if system == "" {
+		system = System
+	}
+	return &Client{APIKey: key, System: system}
 }
 
 func (cli *Client) CommitMessage(diff string) (string, error) {
@@ -57,7 +63,7 @@ func (cli *Client) CommitMessage(diff string) (string, error) {
 		Model:     Model,
 		Messages:  []Message{{Role: Role, Content: diff}},
 		MaxTokens: MaxTokens,
-		System:    System,
+		System:    cli.System,
 	}
 
 	data, err := json.Marshal(body)

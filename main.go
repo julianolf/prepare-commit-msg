@@ -133,7 +133,7 @@ func main() {
 	var cli AI
 	switch conf.AI {
 	default:
-		cli = anthropic.New()
+		cli = anthropic.New(conf.APIKey, conf.System)
 	}
 
 	msg, err := cli.CommitMessage(diff)
