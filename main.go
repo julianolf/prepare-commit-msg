@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -55,7 +54,7 @@ func parseArgs() *Args {
 	}
 }
 
-func readConfig() (map[string]interface{}, error) {
+func readConfig() ([]byte, error) {
 	if strings.HasPrefix(cfg, prefix) {
 		home, err := os.UserHomeDir()
 		if err != nil {
@@ -77,12 +76,7 @@ func readConfig() (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	conf := make(map[string]interface{})
-	err = json.Unmarshal(data, &conf)
-	if err != nil {
-		return nil, err
-	}
-	return conf, nil
+	return data, nil
 }
 
 func gitDiff() (string, error) {
