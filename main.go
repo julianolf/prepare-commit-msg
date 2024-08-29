@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -19,6 +20,12 @@ type Args struct {
 	Filename string
 	Source   string
 	SHA      string
+}
+
+type Config struct {
+	AI     string
+	APIKey string
+	System string
 }
 
 const prefix = "~/"
@@ -54,7 +61,9 @@ func parseArgs() *Args {
 	}
 }
 
-func readConfig() ([]byte, error) {
+func readConfig() (*Config, error) {
+	conf := &Config{AI: ai}
+
 	if strings.HasPrefix(cfg, prefix) {
 		home, err := os.UserHomeDir()
 		if err != nil {
@@ -65,10 +74,10 @@ func readConfig() ([]byte, error) {
 
 	info, err := os.Stat(cfg)
 	if err != nil {
-		return nil, nil
+		return conf, nil
 	}
 	if !info.Mode().IsRegular() {
-		return nil, nil
+		return nil, fmt.Errorf("%s is not a regular file\n", cfg)
 	}
 
 	data, err := os.ReadFile(cfg)
@@ -76,7 +85,12 @@ func readConfig() ([]byte, error) {
 		return nil, err
 	}
 
-	return data, nil
+	err = json.Unmarshal(data, conf)
+	if err != nil {
+		return nil, err
+	}
+
+	return conf, nil
 }
 
 func gitDiff() (string, error) {
@@ -110,14 +124,14 @@ func main() {
 		os.Exit(0)
 	}
 
-	_, err = readConfig()
+	conf, err := readConfig()
 	if err != nil {
 		fmt.Fprint(os.Stderr, err)
 		os.Exit(2)
 	}
 
 	var cli AI
-	switch ai {
+	switch conf.AI {
 	default:
 		cli = anthropic.New()
 	}
