@@ -37,9 +37,9 @@ var (
 )
 
 func init() {
-	flag.StringVar(&ai, "ai", "anthropic", "AI to use")
-	flag.StringVar(&sys, "sys", "", "Specifies the system prompt to provide instructions to the AI")
-	flag.StringVar(&cfg, "config", prefix+"prepare-commit-msg.json", "Configuration file")
+	flag.StringVar(&ai, "ai", "anthropic", "Specifies the AI API to use.")
+	flag.StringVar(&sys, "sys", "", "Specifies the system prompt to provide instructions to the AI.")
+	flag.StringVar(&cfg, "config", prefix+"prepare-commit-msg.json", "Path to the configuration file.")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stdout, "Usage: %s [options...] [output file] [commit source] [commit hash] \n", os.Args[0])
