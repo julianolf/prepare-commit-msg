@@ -32,11 +32,13 @@ const prefix = "~/"
 
 var (
 	ai  string
+	sys string
 	cfg string
 )
 
 func init() {
 	flag.StringVar(&ai, "ai", "anthropic", "AI to use")
+	flag.StringVar(&sys, "sys", "", "Specifies the system prompt to provide instructions to the AI")
 	flag.StringVar(&cfg, "config", prefix+"prepare-commit-msg.json", "Configuration file")
 
 	flag.Usage = func() {
@@ -62,7 +64,7 @@ func parseArgs() *Args {
 }
 
 func readConfig() (*Config, error) {
-	conf := &Config{AI: ai}
+	conf := &Config{AI: ai, System: sys}
 
 	if strings.HasPrefix(cfg, prefix) {
 		home, err := os.UserHomeDir()
