@@ -38,7 +38,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&ai, "ai", "anthropic", "Specifies the AI API to use.")
+	flag.StringVar(&ai, "ai", "anthropic", "Specifies the AI model to use.")
 	flag.StringVar(&sys, "sys", "", "Specifies the system prompt to provide instructions to the AI.")
 	flag.StringVar(&cfg, "config", prefix+"prepare-commit-msg.json", "Path to the configuration file.")
 
