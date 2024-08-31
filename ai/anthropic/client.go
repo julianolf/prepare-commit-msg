@@ -14,7 +14,6 @@ const (
 	Model        = "claude-3-5-sonnet-20240620"
 	ModelVersion = "2023-06-01"
 	MaxTokens    = 1024
-	Role         = "user"
 	System       = "You will receive a Git diff output. Based on the diff, generate a commit message. The message should include a short description on the first line, followed by a more detailed explanation of the changes made. Do not add comments or descriptions about the generated text."
 )
 
@@ -61,7 +60,7 @@ func New(key, system string) *Client {
 func (cli *Client) CommitMessage(diff string) (string, error) {
 	body := Body{
 		Model:     Model,
-		Messages:  []Message{{Role: Role, Content: diff}},
+		Messages:  []Message{{Role: "user", Content: diff}},
 		MaxTokens: MaxTokens,
 		System:    cli.System,
 	}
