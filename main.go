@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/julianolf/prepare-commit-msg/ai/anthropic"
+	"github.com/julianolf/prepare-commit-msg/ai/openai"
 )
 
 type AI interface {
@@ -134,6 +135,8 @@ func main() {
 
 	var cli AI
 	switch conf.AI {
+	case "openai":
+		cli = openai.New(conf.APIKey, conf.System)
 	default:
 		cli = anthropic.New(conf.APIKey, conf.System)
 	}
