@@ -29,18 +29,23 @@ type Config struct {
 	System string
 }
 
-const prefix = "~/"
+const (
+	prefix  = "~/"
+	version = "1.0.0"
+)
 
 var (
 	ai  string
 	sys string
 	cfg string
+	ver bool
 )
 
 func init() {
 	flag.StringVar(&ai, "ai", "anthropic", "Specifies the AI model to use.")
 	flag.StringVar(&sys, "sys", "", "Specifies the system prompt to provide instructions to the AI.")
 	flag.StringVar(&cfg, "config", prefix+"prepare-commit-msg.json", "Path to the configuration file.")
+	flag.BoolVar(&ver, "version", false, "Show version number and quit.")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stdout, "Usage: %s [options...] [output file] [commit source] [commit hash] \n", os.Args[0])
@@ -111,6 +116,11 @@ func gitDiff() (string, error) {
 
 func main() {
 	args := parseArgs()
+
+	if ver {
+		fmt.Printf("%s %s\n", os.Args[0], version)
+		os.Exit(0)
+	}
 
 	switch args.Source {
 	case "message", "merge", "squash", "commit":
