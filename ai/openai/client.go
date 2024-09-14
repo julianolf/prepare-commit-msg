@@ -41,7 +41,7 @@ type Response struct {
 	Model             string         `json:"model"`
 	SystemFingerprint string         `json:"system_fingerprint"`
 	Choices           []Choice       `json:"choices"`
-	Usage             map[string]int `json:"usage"`
+	Usage             map[string]any `json:"usage"`
 }
 
 type Client struct {
