@@ -60,10 +60,10 @@ func New(key, system string) *Client {
 	return &Client{APIKey: key, System: system}
 }
 
-func (cli *Client) CommitMessage(diff string) (string, error) {
+func (cli *Client) Chat(messages []Message) (string, error) {
 	body := Body{
 		Model:     Model,
-		Messages:  []Message{{Role: "system", Content: cli.System}, {Role: "user", Content: diff}},
+		Messages:  messages,
 		MaxTokens: MaxTokens,
 	}
 
@@ -102,6 +102,11 @@ func (cli *Client) CommitMessage(diff string) (string, error) {
 	}
 
 	return response.Choices[0].Message.Content, nil
+}
+
+func (cli *Client) CommitMessage(diff string) (string, error) {
+	msgs := []Message{{Role: "system", Content: cli.System}, {Role: "user", Content: diff}}
+	return cli.Chat(msgs)
 }
 
 func (cli *Client) RefineText(text string) (string, error) {
