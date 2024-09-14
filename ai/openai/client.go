@@ -103,3 +103,9 @@ func (cli *Client) CommitMessage(diff string) (string, error) {
 
 	return response.Choices[0].Message.Content, nil
 }
+
+func (cli *Client) RefineText(text string) (string, error) {
+	// TODO improve input text using the following system prompt:
+	// You are a writing assistant specialized in spelling and grammar correction. You will receive a Git commit message describing changes made to source code. Your task is to fix any spelling or grammatical errors while keeping changes minimal. Do not include explanations or comments about the corrections.
+	return text, nil
+}

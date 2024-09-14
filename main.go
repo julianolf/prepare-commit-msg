@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 
 type AI interface {
 	CommitMessage(string) (string, error)
+	RefineText(string) (string, error)
 }
 
 type Args struct {
@@ -101,6 +103,32 @@ func readConfig() (*Config, error) {
 	return conf, nil
 }
 
+func readFile(filename string) (string, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	var content strings.Builder
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+		content.WriteString(line + "\n")
+	}
+
+	err = scanner.Err()
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(content.String()), nil
+}
+
 func gitDiff() (string, error) {
 	var out strings.Builder
 
@@ -111,7 +139,7 @@ func gitDiff() (string, error) {
 		return "", err
 	}
 
-	return out.String(), nil
+	return strings.TrimSpace(out.String()), nil
 }
 
 func main() {
@@ -122,18 +150,23 @@ func main() {
 		os.Exit(0)
 	}
 
+	var txt string
+	var err error
+
 	switch args.Source {
-	case "message", "merge", "squash", "commit":
+	case "merge", "squash", "commit":
 		os.Exit(0)
+	case "message":
+		txt, err = readFile(args.Filename)
+	default:
+		txt, err = gitDiff()
 	}
 
-	diff, err := gitDiff()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	if strings.TrimSpace(diff) == "" {
-		fmt.Println("Nothing to commit")
+	if txt == "" {
 		os.Exit(0)
 	}
 
@@ -144,6 +177,7 @@ func main() {
 	}
 
 	var cli AI
+
 	switch conf.AI {
 	case "openai":
 		cli = openai.New(conf.APIKey, conf.System)
@@ -151,7 +185,15 @@ func main() {
 		cli = anthropic.New(conf.APIKey, conf.System)
 	}
 
-	msg, err := cli.CommitMessage(diff)
+	var msg string
+
+	switch args.Source {
+	case "message":
+		msg, err = cli.RefineText(txt)
+	default:
+		msg, err = cli.CommitMessage(txt)
+	}
+
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(3)

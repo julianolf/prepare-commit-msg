@@ -102,3 +102,8 @@ func (cli *Client) CommitMessage(diff string) (string, error) {
 
 	return response.Content[0]["text"], nil
 }
+
+func (cli *Client) RefineText(text string) (string, error) {
+	// TODO
+	return text, nil
+}
