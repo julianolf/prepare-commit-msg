@@ -57,12 +57,12 @@ func New(key, system string) *Client {
 	return &Client{APIKey: key, System: system}
 }
 
-func (cli *Client) CommitMessage(diff string) (string, error) {
+func (cli *Client) Chat(messages []Message, system string) (string, error) {
 	body := Body{
 		Model:     Model,
-		Messages:  []Message{{Role: "user", Content: diff}},
+		Messages:  messages,
 		MaxTokens: MaxTokens,
-		System:    cli.System,
+		System:    system,
 	}
 
 	data, err := json.Marshal(body)
@@ -101,6 +101,11 @@ func (cli *Client) CommitMessage(diff string) (string, error) {
 	}
 
 	return response.Content[0]["text"], nil
+}
+
+func (cli *Client) CommitMessage(diff string) (string, error) {
+	msgs := []Message{{Role: "user", Content: diff}}
+	return cli.Chat(msgs, cli.System)
 }
 
 func (cli *Client) RefineText(text string) (string, error) {
