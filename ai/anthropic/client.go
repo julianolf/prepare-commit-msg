@@ -109,6 +109,8 @@ func (cli *Client) CommitMessage(diff string) (string, error) {
 }
 
 func (cli *Client) RefineText(text string) (string, error) {
-	// TODO
-	return text, nil
+	// TODO needs refactoring.
+	sys := "You are a writing assistant specialized in spelling and grammar correction. You will receive a Git commit message describing changes made to source code. Your task is to fix any spelling or grammatical errors while keeping changes minimal. Do not include explanations or comments about the corrections."
+	msgs := []Message{{Role: "user", Content: text}}
+	return cli.Chat(msgs, sys)
 }
