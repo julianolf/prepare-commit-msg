@@ -15,7 +15,6 @@ const (
 	URL       = "https://api.openai.com/v1/chat/completions"
 	Model     = "gpt-4o-mini"
 	MaxTokens = 1024
-	System    = "You will receive a Git diff output. Based on the diff, generate a commit message. The message should include a short description on the first line, followed by a more detailed explanation of the changes made. Do not add comments or descriptions about the generated text."
 )
 
 type Message struct {
@@ -54,9 +53,6 @@ type Client struct {
 func New(cfg *config.Config) *Client {
 	if cfg.APIKey == "" {
 		cfg.APIKey = os.Getenv("OPENAI_API_KEY")
-	}
-	if cfg.System == "" {
-		cfg.System = System
 	}
 	return &Client{Config: cfg}
 }
@@ -106,13 +102,11 @@ func (cli *Client) Chat(messages []Message) (string, error) {
 }
 
 func (cli *Client) CommitMessage(diff string) (string, error) {
-	msgs := []Message{{Role: "system", Content: cli.Config.System}, {Role: "user", Content: diff}}
+	msgs := []Message{{Role: "system", Content: cli.Config.System.GenMsg}, {Role: "user", Content: diff}}
 	return cli.Chat(msgs)
 }
 
 func (cli *Client) RefineText(text string) (string, error) {
-	// TODO needs refactoring.
-	sys := "You are a writing assistant specialized in spelling and grammar correction. You will receive a Git commit message describing changes made to source code. Your task is to fix any spelling or grammatical errors while keeping changes minimal. Do not include explanations or comments about the corrections."
-	msgs := []Message{{Role: "system", Content: sys}, {Role: "user", Content: text}}
+	msgs := []Message{{Role: "system", Content: cli.Config.System.FixMsg}, {Role: "user", Content: text}}
 	return cli.Chat(msgs)
 }

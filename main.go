@@ -61,10 +61,15 @@ func parseArgs() *Args {
 }
 
 func loadConfig() (*config.Config, error) {
-	cfgFlags := &config.Config{AI: aiModel, System: systemPrompt}
-	cfgFile := &config.Config{}
 	cfgEnv := config.ConfigFromEnv()
-
+	cfgFlags := &config.Config{
+		AI: aiModel,
+		System: &config.SystemPrompt{
+			GenMsg: systemPrompt,
+			FixMsg: systemPrompt,
+		},
+	}
+	cfgFile := &config.Config{}
 	_, err := os.Stat(configFile)
 	if err == nil {
 		cfgFile, err = config.ConfigFromFile(configFile)
@@ -73,7 +78,7 @@ func loadConfig() (*config.Config, error) {
 		}
 	}
 
-	cfg := &config.Config{}
+	cfg := config.Default()
 	cfg.Update(cfgEnv)
 	cfg.Update(cfgFile)
 	cfg.Update(cfgFlags)
