@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+
+	"github.com/julianolf/prepare-commit-msg/ai/config"
 )
 
 const (
@@ -43,18 +45,17 @@ type Response struct {
 
 type Client struct {
 	http.Client
-	APIKey string
-	System string
+	Config *config.Config
 }
 
-func New(key, system string) *Client {
-	if key == "" {
-		key = os.Getenv("ANTHROPIC_API_KEY")
+func New(cfg *config.Config) *Client {
+	if cfg.APIKey == "" {
+		cfg.APIKey = os.Getenv("ANTHROPIC_API_KEY")
 	}
-	if system == "" {
-		system = System
+	if cfg.System == "" {
+		cfg.System = System
 	}
-	return &Client{APIKey: key, System: system}
+	return &Client{Config: cfg}
 }
 
 func (cli *Client) Chat(messages []Message, system string) (string, error) {
@@ -78,7 +79,7 @@ func (cli *Client) Chat(messages []Message, system string) (string, error) {
 
 	req.Header.Set("content-type", "application/json")
 	req.Header.Set("anthropic-version", ModelVersion)
-	req.Header.Set("x-api-key", cli.APIKey)
+	req.Header.Set("x-api-key", cli.Config.APIKey)
 
 	res, err := cli.Do(req)
 	if err != nil {
@@ -105,7 +106,7 @@ func (cli *Client) Chat(messages []Message, system string) (string, error) {
 
 func (cli *Client) CommitMessage(diff string) (string, error) {
 	msgs := []Message{{Role: "user", Content: diff}}
-	return cli.Chat(msgs, cli.System)
+	return cli.Chat(msgs, cli.Config.System)
 }
 
 func (cli *Client) RefineText(text string) (string, error) {

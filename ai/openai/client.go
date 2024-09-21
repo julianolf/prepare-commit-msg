@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+
+	"github.com/julianolf/prepare-commit-msg/ai/config"
 )
 
 const (
@@ -46,18 +48,17 @@ type Response struct {
 
 type Client struct {
 	http.Client
-	APIKey string
-	System string
+	Config *config.Config
 }
 
-func New(key, system string) *Client {
-	if key == "" {
-		key = os.Getenv("OPENAI_API_KEY")
+func New(cfg *config.Config) *Client {
+	if cfg.APIKey == "" {
+		cfg.APIKey = os.Getenv("OPENAI_API_KEY")
 	}
-	if system == "" {
-		system = System
+	if cfg.System == "" {
+		cfg.System = System
 	}
-	return &Client{APIKey: key, System: system}
+	return &Client{Config: cfg}
 }
 
 func (cli *Client) Chat(messages []Message) (string, error) {
@@ -79,7 +80,7 @@ func (cli *Client) Chat(messages []Message) (string, error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+cli.APIKey)
+	req.Header.Set("Authorization", "Bearer "+cli.Config.APIKey)
 
 	res, err := cli.Do(req)
 	if err != nil {
@@ -105,7 +106,7 @@ func (cli *Client) Chat(messages []Message) (string, error) {
 }
 
 func (cli *Client) CommitMessage(diff string) (string, error) {
-	msgs := []Message{{Role: "system", Content: cli.System}, {Role: "user", Content: diff}}
+	msgs := []Message{{Role: "system", Content: cli.Config.System}, {Role: "user", Content: diff}}
 	return cli.Chat(msgs)
 }
 

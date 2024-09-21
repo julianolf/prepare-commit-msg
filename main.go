@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/julianolf/prepare-commit-msg/ai"
+	"github.com/julianolf/prepare-commit-msg/ai/config"
 )
 
 const version = "1.0.1"
@@ -36,7 +37,7 @@ var (
 func init() {
 	flag.StringVar(&aiModel, "ai", "", "Specifies the AI model to use. (default \"anthropic\")")
 	flag.StringVar(&systemPrompt, "sys", "", "Specifies the system prompt to provide instructions to the AI.")
-	flag.StringVar(&configFile, "config", ai.DefaultConfigFile, "Path to the configuration file.")
+	flag.StringVar(&configFile, "config", config.DefaultConfigFile, "Path to the configuration file.")
 	flag.BoolVar(&versionFlag, "version", false, "Show version number and quit.")
 
 	flag.Usage = func() {
@@ -59,20 +60,20 @@ func parseArgs() *Args {
 	}
 }
 
-func loadConfig() (*ai.Config, error) {
-	cfgFlags := &ai.Config{AI: aiModel, System: systemPrompt}
-	cfgFile := &ai.Config{}
-	cfgEnv := ai.ConfigFromEnv()
+func loadConfig() (*config.Config, error) {
+	cfgFlags := &config.Config{AI: aiModel, System: systemPrompt}
+	cfgFile := &config.Config{}
+	cfgEnv := config.ConfigFromEnv()
 
 	_, err := os.Stat(configFile)
 	if err == nil {
-		cfgFile, err = ai.ConfigFromFile(configFile)
+		cfgFile, err = config.ConfigFromFile(configFile)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	cfg := &ai.Config{}
+	cfg := &config.Config{}
 	cfg.Update(cfgEnv)
 	cfg.Update(cfgFile)
 	cfg.Update(cfgFlags)

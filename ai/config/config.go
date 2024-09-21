@@ -1,4 +1,4 @@
-package ai
+package config
 
 import (
 	"encoding/json"
@@ -21,38 +21,38 @@ type Config struct {
 	System string
 }
 
-func (c *Config) Update(config *Config) {
-	if config.AI != "" {
-		c.AI = config.AI
+func (c *Config) Update(cfg *Config) {
+	if cfg.AI != "" {
+		c.AI = cfg.AI
 	}
-	if config.APIKey != "" {
-		c.APIKey = config.APIKey
+	if cfg.APIKey != "" {
+		c.APIKey = cfg.APIKey
 	}
-	if config.System != "" {
-		c.System = config.System
+	if cfg.System != "" {
+		c.System = cfg.System
 	}
 }
 
 func ConfigFromFile(filename string) (*Config, error) {
-	config := &Config{}
+	cfg := &Config{}
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		return config, err
+		return cfg, err
 	}
 
-	err = json.Unmarshal(data, config)
+	err = json.Unmarshal(data, cfg)
 	if err != nil {
-		return config, err
+		return cfg, err
 	}
 
-	return config, nil
+	return cfg, nil
 }
 
 func ConfigFromEnv() *Config {
-	config := &Config{
+	cfg := &Config{
 		AI:     os.Getenv("PREPARE_COMMIT_MSG_AI"),
 		APIKey: os.Getenv("PREPARE_COMMIT_MSG_APIKEY"),
 		System: os.Getenv("PREPARE_COMMIT_MSG_SYSTEM"),
 	}
-	return config
+	return cfg
 }
