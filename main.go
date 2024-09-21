@@ -2,22 +2,23 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
-	"github.com/julianolf/prepare-commit-msg/ai/anthropic"
-	"github.com/julianolf/prepare-commit-msg/ai/openai"
+	"github.com/julianolf/prepare-commit-msg/ai"
 )
 
-type AI interface {
-	CommitMessage(string) (string, error)
-	RefineText(string) (string, error)
-}
+const version = "1.0.1"
+
+const (
+	ok = iota
+	cfgErr
+	msgErr
+	outErr
+)
 
 type Args struct {
 	Filename string
@@ -25,29 +26,18 @@ type Args struct {
 	SHA      string
 }
 
-type Config struct {
-	AI     string
-	APIKey string
-	System string
-}
-
-const (
-	prefix  = "~/"
-	version = "1.0.1"
-)
-
 var (
-	ai  string
-	sys string
-	cfg string
-	ver bool
+	aiModel      string
+	systemPrompt string
+	configFile   string
+	versionFlag  bool
 )
 
 func init() {
-	flag.StringVar(&ai, "ai", "anthropic", "Specifies the AI model to use.")
-	flag.StringVar(&sys, "sys", "", "Specifies the system prompt to provide instructions to the AI.")
-	flag.StringVar(&cfg, "config", prefix+"prepare-commit-msg.json", "Path to the configuration file.")
-	flag.BoolVar(&ver, "version", false, "Show version number and quit.")
+	flag.StringVar(&aiModel, "ai", "", "Specifies the AI model to use. (default \"anthropic\")")
+	flag.StringVar(&systemPrompt, "sys", "", "Specifies the system prompt to provide instructions to the AI.")
+	flag.StringVar(&configFile, "config", ai.DefaultConfigFile, "Path to the configuration file.")
+	flag.BoolVar(&versionFlag, "version", false, "Show version number and quit.")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stdout, "Usage: %s [options...] [output file] [commit source] [commit hash] \n", os.Args[0])
@@ -56,9 +46,7 @@ func init() {
 }
 
 func parseArgs() *Args {
-	flag.Parse()
 	args := flag.Args()
-
 	switch len(args) {
 	case 1:
 		return &Args{Filename: args[0]}
@@ -71,39 +59,41 @@ func parseArgs() *Args {
 	}
 }
 
-func readConfig() (*Config, error) {
-	conf := &Config{AI: ai, System: sys}
+func loadConfig() (*ai.Config, error) {
+	cfgFlags := &ai.Config{AI: aiModel, System: systemPrompt}
+	cfgFile := &ai.Config{}
+	cfgEnv := ai.ConfigFromEnv()
 
-	if strings.HasPrefix(cfg, prefix) {
-		home, err := os.UserHomeDir()
+	_, err := os.Stat(configFile)
+	if err == nil {
+		cfgFile, err = ai.ConfigFromFile(configFile)
 		if err != nil {
 			return nil, err
 		}
-		cfg = filepath.Join(home, strings.TrimPrefix(cfg, prefix))
 	}
 
-	info, err := os.Stat(cfg)
-	if err != nil {
-		return conf, nil
-	}
-	if !info.Mode().IsRegular() {
-		return nil, fmt.Errorf("%s is not a regular file\n", cfg)
-	}
+	cfg := &ai.Config{}
+	cfg.Update(cfgEnv)
+	cfg.Update(cfgFile)
+	cfg.Update(cfgFlags)
 
-	data, err := os.ReadFile(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(data, conf)
-	if err != nil {
-		return nil, err
-	}
-
-	return conf, nil
+	return cfg, nil
 }
 
-func readFile(filename string) (string, error) {
+func gitDiff() (string, error) {
+	var out strings.Builder
+
+	cmd := exec.Command("git", "diff", "--staged")
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(out.String()), nil
+}
+
+func readCommitMsg(filename string) (string, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return "", err
@@ -129,85 +119,84 @@ func readFile(filename string) (string, error) {
 	return strings.TrimSpace(content.String()), nil
 }
 
-func gitDiff() (string, error) {
-	var out strings.Builder
-
-	cmd := exec.Command("git", "diff", "--staged")
-	cmd.Stdout = &out
-	err := cmd.Run()
+func improveCommitMsg(cli ai.AI, args *Args) (string, error) {
+	msg, err := readCommitMsg(args.Filename)
 	if err != nil {
 		return "", err
 	}
-
-	return strings.TrimSpace(out.String()), nil
+	if msg == "" {
+		return "", nil
+	}
+	return cli.RefineText(msg)
 }
 
-func main() {
-	args := parseArgs()
-
-	if ver {
-		fmt.Printf("%s %s\n", os.Args[0], version)
-		os.Exit(0)
+func generateCommitMsg(cli ai.AI) (string, error) {
+	diff, err := gitDiff()
+	if err != nil {
+		return "", err
 	}
+	if diff == "" {
+		return "", nil
+	}
+	return cli.CommitMessage(diff)
+}
 
-	var txt string
-	var err error
-
+func prepareCommitMsg(cli ai.AI, args *Args) (string, error) {
 	switch args.Source {
 	case "merge", "squash", "commit":
-		os.Exit(0)
+		return "", nil
 	case "message":
-		txt, err = readFile(args.Filename)
+		return improveCommitMsg(cli, args)
 	default:
-		txt, err = gitDiff()
+		return generateCommitMsg(cli)
 	}
+}
 
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	if txt == "" {
-		os.Exit(0)
-	}
-
-	conf, err := readConfig()
-	if err != nil {
-		fmt.Fprint(os.Stderr, err)
-		os.Exit(2)
-	}
-
-	var cli AI
-
-	switch conf.AI {
-	case "openai":
-		cli = openai.New(conf.APIKey, conf.System)
-	default:
-		cli = anthropic.New(conf.APIKey, conf.System)
-	}
-
-	var msg string
-
-	switch args.Source {
-	case "message":
-		msg, err = cli.RefineText(txt)
-	default:
-		msg, err = cli.CommitMessage(txt)
-	}
-
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(3)
-	}
-
+func outputCommitMsg(msg string, args *Args) error {
 	out := os.Stdout
 	if args.Filename != "" {
+		var err error
 		out, err = os.Create(args.Filename)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(4)
+			return err
 		}
 		defer out.Close()
 	}
-
 	fmt.Fprintln(out, msg)
+	return nil
+}
+
+func showVersion() {
+	fmt.Printf("%s %s\n", os.Args[0], version)
+}
+
+func main() {
+	flag.Parse()
+	if versionFlag {
+		showVersion()
+		os.Exit(ok)
+	}
+
+	args := parseArgs()
+	conf, err := loadConfig()
+	if err != nil {
+		fmt.Fprint(os.Stderr, err)
+		os.Exit(cfgErr)
+	}
+
+	cli := ai.New(conf)
+	msg, err := prepareCommitMsg(cli, args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(msgErr)
+	}
+	if msg == "" {
+		os.Exit(ok)
+	}
+
+	err = outputCommitMsg(msg, args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(outErr)
+	}
 }
