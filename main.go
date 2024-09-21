@@ -12,7 +12,7 @@ import (
 	"github.com/julianolf/prepare-commit-msg/ai/config"
 )
 
-const version = "1.0.1"
+const version = "2.0.0"
 
 const (
 	ok = iota
