@@ -59,7 +59,7 @@ func Default() *Config {
 	}
 }
 
-func ConfigFromFile(filename string) (*Config, error) {
+func FromFile(filename string) (*Config, error) {
 	cfg := &Config{}
 	data, err := os.ReadFile(filename)
 	if err != nil {
@@ -74,7 +74,7 @@ func ConfigFromFile(filename string) (*Config, error) {
 	return cfg, nil
 }
 
-func ConfigFromEnv() *Config {
+func FromEnv() *Config {
 	cfg := &Config{
 		AI:     os.Getenv("PREPARE_COMMIT_MSG_AI"),
 		APIKey: os.Getenv("PREPARE_COMMIT_MSG_APIKEY"),
